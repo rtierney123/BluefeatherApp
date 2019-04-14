@@ -87,4 +87,7 @@ dependencies {
 
     //
     testImplementation 'junit:junit:4.12'
+
+    // Http connection
+    implementation 'com.squareup.okhttp3:okhttp:3.11.0'
 }

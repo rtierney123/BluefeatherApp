@@ -49,8 +49,6 @@
   #include "algorithm.h" 
 #endif
 
-// Interrupt pin
-const byte oxiInt = 10; // pin connected to MAX30102 INT
 
 // ADALOGGER pins
 #ifdef USE_ADALOGGER
@@ -196,7 +194,6 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason)
 void setup() {
   setUpBLE();
 
-  pinMode(oxiInt, INPUT);  //pin D10 connects to the interrupt output pin of the MAX30102
 
 #ifdef USE_ADALOGGER
   pinMode(cardDetect,INPUT_PULLUP);
@@ -296,13 +293,14 @@ void setup() {
   dataFile.println("");
 
 #else // USE_ADALOGGER
-
+/*
   while(Serial.available()==0)  //wait until user presses a key
   {
     Serial.println(F("Press any key to start conversion"));
     delay(1000);
   }
   uch_dummy=Serial.read();
+  */
 #ifdef TEST_MAXIM_ALGORITHM
   Serial.print(F("Time[s]\tSpO2\tHR\tSpO2_MX\tHR_MX\tClock\tRatio\tCorr"));
 #else // TEST_MAXIM_ALGORITHM
@@ -342,7 +340,7 @@ void loop() {
   //read BUFFER_SIZE samples, and determine the signal range
   for(i=0;i<BUFFER_SIZE;i++)
   {
-    while(digitalRead(oxiInt)==1);  //wait until the interrupt pin asserts
+    //while(digitalRead(oxiInt)==1);  //wait until the interrupt pin asserts
     maxim_max30102_read_fifo((aun_red_buffer+i), (aun_ir_buffer+i));  //read from MAX30102 FIFO
 #ifdef DEBUG
     Serial.print(i, DEC);
