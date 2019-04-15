@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -51,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 // TODO: register
 public abstract class UartBaseFragment extends ConnectedPeripheralFragment implements UartPacketManagerBase.Listener, MqttManager.MqttManagerListener {
@@ -113,6 +115,9 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
     private int maxPacketsToPaintAsText;
     private int mPacketsCacheLastSize = 0;
 
+    private CanaryStuff canaryStuff;
+    private LocationManager locationManager;
+
     // region Fragment Lifecycle
     public UartBaseFragment() {
         // Required empty public constructor
@@ -124,6 +129,12 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
         // Retain this fragment across configuration changes
         setRetainInstance(true);
+
+        // Make location Manager
+        locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+
+        // Create our Canary Stuff
+        canaryStuff = new CanaryStuff(locationManager);
     }
 
     @Override
@@ -472,17 +483,25 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
     protected abstract void send(String message);
 
+//    private void onClickSend() {
+//        String newText = mSendEditText.getText().toString();
+//        mSendEditText.setText("");       // Clear editText
+//
+//        // Add eol
+//        if (mIsEolEnabled) {
+//            // Add newline character if checked
+//            newText += getEolCharacters();
+//        }
+//
+//        send(newText);
+//    }
+
     private void onClickSend() {
-        String newText = mSendEditText.getText().toString();
-        mSendEditText.setText("");       // Clear editText
-
-        // Add eol
-        if (mIsEolEnabled) {
-            // Add newline character if checked
-            newText += getEolCharacters();
+//        canaryStuff.createCSV();
+        Map<String, Double> loc = canaryStuff.mapLastKnownLocation();
+        for (String key : loc.keySet()) {
+            System.out.print(loc.get(key));
         }
-
-        send(newText);
     }
 
     // endregion
@@ -507,11 +526,26 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
         }
     }
 
+    // TODO: Use this method later.
+    /**
+     * This method SHOULD return the bluetooth string received.
+     * @return
+     */
+    private String getBluetoothReceivedString()
+    {
+        String receivedText = "";
+        if (mUartData != null) {
+
+            receivedText = String.format(getString(R.string.uart_receivedbytes_format), mUartData.getReceivedBytes());
+        }
+        return receivedText;
+    }
+
     @MainThread
     private void updateBytesUI() {
         if (mUartData != null) {
             mSentBytesTextView.setText(String.format(getString(R.string.uart_sentbytes_format), mUartData.getSentBytes()));
-            mReceivedBytesTextView.setText(String.format(getString(R.string.uart_receivedbytes_format), mUartData.getReceivedBytes()));
+            mReceivedBytesTextView.setText(getBluetoothReceivedString());
         }
     }
 
@@ -551,6 +585,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
                     mPacketsCacheLastSize = packetsCacheSize - maxPacketsToPaintAsText;
                     mTextSpanBuffer.clear();
                     addTextToSpanBuffer(mTextSpanBuffer, getString(R.string.uart_text_dataomitted) + "\n", kInfoColor, false);
+
                 }
 
                 // Log.d(TAG, "update packets: "+(bufferSize-mPacketsCacheLastSize));
@@ -643,7 +678,9 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
             final byte[] bytes = packet.getData();
             final String formattedData = mShowDataInHexFormat ? BleUtils.bytesToHex2(bytes) : BleUtils.bytesToText(bytes, true);
             addTextToSpanBuffer(mTextSpanBuffer, formattedData, color, isBold);
+            canaryStuff.sendCSV(getBluetoothReceivedString());
         }
+
     }
 
     private static SpannableString stringFromPacket(UartPacket packet, boolean useHexMode, int color, boolean isBold) {
