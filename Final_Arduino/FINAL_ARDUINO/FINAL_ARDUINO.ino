@@ -324,11 +324,13 @@ void setup() {
 #endif // USE_ADALOGGER
   
   timeStart=millis();
+  Wire.begin();
 }
 
 //Continuously taking samples from MAX30102.  Heart rate and SpO2 are calculated every ST seconds
 void loop() {
   maintainBLE();
+  
   float n_spo2,ratio,correl;  //SPO2 value
   int8_t ch_spo2_valid;  //indicator to show if the SPO2 calculation is valid
   int32_t n_heart_rate; //heart rate value
