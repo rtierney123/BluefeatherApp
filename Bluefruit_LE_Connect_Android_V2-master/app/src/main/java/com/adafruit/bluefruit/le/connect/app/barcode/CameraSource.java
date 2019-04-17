@@ -336,7 +336,7 @@ public class CameraSource {
     public CameraSource start() throws IOException {
         synchronized (mCameraLock) {
             if (mCamera != null) {
-                return this;
+                return null;
             }
 
             mCamera = createCamera();
@@ -356,7 +356,7 @@ public class CameraSource {
             mFrameProcessor.setActive(true);
             mProcessingThread.start();
         }
-        return this;
+        return null;
     }
 
     /**
@@ -370,7 +370,7 @@ public class CameraSource {
     public CameraSource start(SurfaceHolder surfaceHolder) throws IOException {
         synchronized (mCameraLock) {
             if (mCamera != null) {
-                return this;
+                return null;
             }
 
             mCamera = createCamera();
@@ -381,7 +381,7 @@ public class CameraSource {
             mFrameProcessor.setActive(true);
             mProcessingThread.start();
         }
-        return this;
+        return null;
     }
 
     /**
