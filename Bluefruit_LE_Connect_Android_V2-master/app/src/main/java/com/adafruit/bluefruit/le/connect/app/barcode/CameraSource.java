@@ -332,11 +332,12 @@ public class CameraSource {
      *
      * @throws IOException if the camera's preview texture or display could not be initialized
      */
+    @SuppressLint("MissingPermission")
     @RequiresPermission(Manifest.permission.CAMERA)
     public CameraSource start() throws IOException {
         synchronized (mCameraLock) {
             if (mCamera != null) {
-                return null;
+                return this;
             }
 
             mCamera = createCamera();
@@ -356,7 +357,7 @@ public class CameraSource {
             mFrameProcessor.setActive(true);
             mProcessingThread.start();
         }
-        return null;
+        return this;
     }
 
     /**
@@ -366,11 +367,12 @@ public class CameraSource {
      * @param surfaceHolder the surface holder to use for the preview frames
      * @throws IOException if the supplied surface holder could not be used as the preview display
      */
+    @SuppressLint("MissingPermission")
     @RequiresPermission(Manifest.permission.CAMERA)
     public CameraSource start(SurfaceHolder surfaceHolder) throws IOException {
         synchronized (mCameraLock) {
             if (mCamera != null) {
-                return null;
+                return this;
             }
 
             mCamera = createCamera();
@@ -381,7 +383,7 @@ public class CameraSource {
             mFrameProcessor.setActive(true);
             mProcessingThread.start();
         }
-        return null;
+        return this;
     }
 
     /**
