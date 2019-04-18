@@ -497,7 +497,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 //    }
 
     private void onClickSend() {
-//        canaryStuff.createCSV();
+        // canaryStuff.createCSV();
         Map<String, Double> loc = canaryStuff.mapLastKnownLocation();
         for (String key : loc.keySet()) {
             System.out.print(loc.get(key));
