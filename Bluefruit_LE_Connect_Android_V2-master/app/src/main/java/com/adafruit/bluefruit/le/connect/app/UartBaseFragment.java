@@ -68,6 +68,7 @@ import com.google.android.gms.location.LocationServices;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -533,11 +534,14 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
         // Force release mLocationCallback to avoid memory leaks
         if (mFusedLocationClient != null) {
+            mFusedLocationClient.removeLocationUpdates(mLocationCallback);
             mFusedLocationClient = null;
         }
 
         mGoogleApiClient.disconnect();
         disconnectGoogleApiClient();
+        mBufferItemAdapter = null;
+        mBufferRecylerView = null;
         super.onDestroy();
     }
 
@@ -913,10 +917,12 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
             final byte[] bytes = packet.getData();
             String formattedData = mShowDataInHexFormat ? BleUtils.bytesToHex2(bytes) : BleUtils.bytesToText(bytes, true);
 
+            long currentTime = Calendar.getInstance().getTimeInMillis();
+
             String latStr = currentLocation.getLatitude() + "";
             String longStr = currentLocation.getLongitude() + "";
             String altStr = currentLocation.getAltitude() + "";
-            formattedData = formattedData + "," + latStr + "," + longStr + "," + altStr;
+            formattedData = currentTime+ "," + formattedData + "," + latStr + "," + longStr + "," + altStr;
             addTextToSpanBuffer(mTextSpanBuffer, formattedData, color, isBold);
             csvManager.sendCSV(formattedData);
         }

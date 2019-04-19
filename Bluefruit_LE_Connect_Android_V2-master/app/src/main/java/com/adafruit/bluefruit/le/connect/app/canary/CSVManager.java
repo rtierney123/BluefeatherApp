@@ -48,7 +48,7 @@ public class CSVManager {
                     System.out.println("Adding header to file.");
                     try (CsvAppender csvAppender = csvWriter.append(fileWriter)) {
                         // WRITE FILE HEADER
-                        csvAppender.appendLine("TIME", "ALTITUDE", "LATITUDE", "LONGITUDE", "SPO2", "TEMPERATURE");
+                        csvAppender.appendLine("TIME", "SPO2", "ALTITUDE", "LATITUDE", "LONGITUDE");
                     } catch (java.io.IOException e) {
                         e.printStackTrace();
                     }
@@ -58,16 +58,15 @@ public class CSVManager {
             }
 
         }
-        // Write received data to file
-        String[] dataline = {parsedStrings[0]};
+
 
         System.out.println("Is filewriter null?");
         if (fileWriter != null) {
             System.out.println("filewriter is not null");
             try (CsvAppender csvAppender = csvWriter.append(fileWriter)) {
-                csvAppender.appendLine(dataline);
+                csvAppender.appendLine(parsedStrings);
 
-                for (String string : dataline) {
+                for (String string : parsedStrings) {
                     System.out.println(string);
                 }
 
