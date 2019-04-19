@@ -18,12 +18,11 @@ import java.util.List;
 import java.util.Map;
 
 
-import de.siegmar.fastcsv.writer.CsvAppender;
-import de.siegmar.fastcsv.writer.CsvWriter;
+
 
 import static android.content.Context.LOCATION_SERVICE;
 
-public class CanaryStuff implements LocationListener {
+public class CanaryStuff {
 
 
     // CSV Stuff
@@ -31,25 +30,21 @@ public class CanaryStuff implements LocationListener {
 //    private FileWriter fileWriter;
 
     // Location Stuff
+    /*
     private LocationManager locationManager;
     protected String latitude,longitude;
     protected boolean gps_enabled,network_enabled;
     private String latStr;
     private String lonStr;
     private String altStr;
+    */
 
 
-
-    // Uses FastCSV library from: https://github.com/osiegmar/FastCSV
-    protected CsvWriter csvWriter = new CsvWriter();
-
-    File file;
 
     public CanaryStuff(LocationManager locationManager) {
+        /*
         this.locationManager = locationManager;
 
-        //TODO: Update the file path to a best-practice directory path
-        file = new File("sensorData.csv");
 
         // Setup Location Stuff
         try {
@@ -120,161 +115,8 @@ public class CanaryStuff implements LocationListener {
         retMap.put("longitude", bestLocation.getLongitude());
         retMap.put("altitude", bestLocation.getAltitude());
         return retMap;
+        */
     }
 
-    // Uses FastCSV
-//    protected void sendCSV(String inputFromBoard) {
-//        Map<String, Double> map = mapLastKnownLocation();
-//
-//        FileWriter fileWriter = null;
-//        File filedir = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+ File.separator +"MyDir");
-//        File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+ File.separator +"SensorData"+File.separator+"data.csv");
-//
-//        // Generate array from raw received text. NOTE: MUST PRINTLN EACH LINE FROM ARDUINO TO ENSURE \n CHAR
-//        String[] parsedStrings = inputFromBoard.split("\n");
-//
-//        try {
-//            fileWriter = new FileWriter(file, true);
-//        } catch (java.io.IOException e) {
-//            System.out.println("Error" + e);
-//        }
-//
-//        try {
-//            System.out.println("We're trying to write the fields to the file.");
-//            CsvAppender csvAppender = csvWriter.append(fileWriter);
-//
-//
-//            System.out.println(map.get("time").toString());
-////            csvAppender.appendField(map.get("time").toString());
-//
-//            System.out.println(map.get("altitude").toString());
-////            csvAppender.appendField(map.get("altitude").toString());
-//
-//            String[] dataline = {map.get("time").toString(), map.get("altitude").toString()};
-//            csvAppender.appendLine(dataline);
-//
-////            csvAppender.endLine();
-////            fileWriter.flush();
-//
-//
-////                FILE HEADER
-////                csvAppender.appendLine("TIME", "ALTITUDE", "SPO2", "TEMPERATURE");
-//
-//            // Add each line of the generated array to the csv file
-//            for (String line : parsedStrings) {
-//                String[] fields = line.split(",");
-//                for (String field: fields) {
-//                    csvAppender.appendField(field);
-//                }
-//                csvAppender.endLine();
-//                fileWriter.flush();
-//            }
-//        } catch (java.io.IOException e) {
-//            System.out.println(e);
-//            e.printStackTrace();
-//        }
-//
-//    }
 
-//    public void createCSV() {
-//        File fileDir = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+ File.separator +"SensorData");
-//        File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+ File.separator +"SensorData"+File.separator+"data.csv");
-//        FileWriter fileWriter = null;
-//        try {
-//            fileDir.mkdir();
-//        } catch (Exception e) {
-////            System.out.println("\ncreateCSV(): Whoah Nellie, fileDir.mkdir Failed");
-//            e.printStackTrace();
-//        }
-//
-//        if(!file.exists()){
-//            try {
-//                file.createNewFile();
-//                fileWriter = new FileWriter(file, true);
-//                if (fileWriter != null) {
-//                    try (CsvAppender csvAppender = csvWriter.append(fileWriter)) {
-//                        // WRITE FILE HEADER
-//                        csvAppender.appendLine("TIME", "ALTITUDE", "SPO2", "TEMPERATURE");
-//                    } catch (java.io.IOException e) {
-//                        System.out.println(e);
-//                        e.printStackTrace();
-//                    }
-//                }
-//            } catch (IOException e) {
-////                System.out.println("\ncreateCSV(): Whoah Nellie, file.createNewFile Failed");
-//                e.printStackTrace();
-//            }
-//
-//        }
-//
-//    }
-
-    public void sendCSV(String sentInfo) {
-        File fileDir = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+ File.separator +"SensorData");
-        File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+ File.separator +"SensorData"+File.separator+"data.csv");
-        FileWriter fileWriter = null;
-        try {
-            fileWriter = new FileWriter(file, true);
-        } catch (java.io.IOException e) {
-            e.printStackTrace();
-        }
-        Map<String, Double> map = mapLastKnownLocation();
-
-        // Split and clean strings from Adafruit board
-        String[] parsedStrings = sentInfo.split(",");
-        for (String string : parsedStrings) {
-            string.trim();
-        }
-
-        try {
-            fileDir.mkdir();
-        } catch (Exception e) {
-//            System.out.println("\ncreateCSV(): Whoah Nellie, fileDir.mkdir Failed");
-            e.printStackTrace();
-        }
-        System.out.println("Does file exist?");
-        if(!file.isFile()){
-            System.out.println("File doesn't exist yet.");
-            try {
-                file.createNewFile();
-                if (fileWriter != null) {
-                    System.out.println("Adding header to file.");
-                    try (CsvAppender csvAppender = csvWriter.append(fileWriter)) {
-                        // WRITE FILE HEADER
-                        csvAppender.appendLine("TIME", "ALTITUDE", "LATITUDE", "LONGITUDE", "SPO2", "TEMPERATURE");
-                    } catch (java.io.IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-        }
-        // Write received data to file
-        String[] dataline = {
-                map.get("time").toString(),
-                map.get("altitude").toString(),
-                map.get("latitude").toString(),
-                map.get("longitude").toString(),
-                parsedStrings[0],
-                parsedStrings[1]
-        };
-
-        System.out.println("Is filewriter null?");
-        if (fileWriter != null) {
-            System.out.println("filewriter is not null");
-            try (CsvAppender csvAppender = csvWriter.append(fileWriter)) {
-                csvAppender.appendLine(dataline);
-
-                for (String string : dataline) {
-                    System.out.println(string);
-                }
-
-            } catch (java.io.IOException e) {
-                System.out.println(e);
-                e.printStackTrace();
-            }
-        }
-    }
 }

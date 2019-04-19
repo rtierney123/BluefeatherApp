@@ -1,10 +1,18 @@
 package com.adafruit.bluefruit.le.connect.app;
 
+import android.Manifest;
+import android.annotation.TargetApi;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.hardware.SensorManager;
+import android.location.Location;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -24,6 +32,7 @@ import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -39,6 +48,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.adafruit.bluefruit.le.connect.R;
+import com.adafruit.bluefruit.le.connect.app.canary.CSVManager;
 import com.adafruit.bluefruit.le.connect.ble.BleUtils;
 import com.adafruit.bluefruit.le.connect.ble.UartPacket;
 import com.adafruit.bluefruit.le.connect.ble.UartPacketManagerBase;
@@ -46,7 +56,16 @@ import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheralUart;
 import com.adafruit.bluefruit.le.connect.mqtt.MqttManager;
 import com.adafruit.bluefruit.le.connect.mqtt.MqttSettings;
 import com.adafruit.bluefruit.le.connect.utils.KeyboardUtils;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
 
+import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -55,7 +74,7 @@ import java.util.Locale;
 import java.util.Map;
 
 // TODO: register
-public abstract class UartBaseFragment extends ConnectedPeripheralFragment implements UartPacketManagerBase.Listener, MqttManager.MqttManagerListener {
+public abstract class UartBaseFragment extends ConnectedPeripheralFragment implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, UartPacketManagerBase.Listener, MqttManager.MqttManagerListener {
     // Log
     private final static String TAG = UartBaseFragment.class.getSimpleName();
 
@@ -82,6 +101,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
     private TextView mSentBytesTextView;
     private TextView mReceivedBytesTextView;
     protected Spinner mSendPeripheralSpinner;
+    private AlertDialog mRequestLocationDialog;
 
     // UI TextBuffer (refreshing the text buffer is managed with a timer because a lot of changes can arrive really fast and could stall the main thread)
     private Handler mUIRefreshTimerHandler = new Handler();
@@ -98,9 +118,11 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
     private boolean isUITimerRunning = false;
 
     // Data
+    private GoogleApiClient mGoogleApiClient;
     protected final Handler mMainHandler = new Handler(Looper.getMainLooper());
     protected UartPacketManagerBase mUartData;
     protected List<BlePeripheralUart> mBlePeripheralsUart = new ArrayList<>();
+    private FusedLocationProviderClient mFusedLocationClient;
 
     private boolean mShowDataInHexFormat;
     private boolean mIsTimestampDisplayMode;
@@ -117,6 +139,9 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
     private CanaryStuff canaryStuff;
     private LocationManager locationManager;
+    private Location currentLocation;
+    private CSVManager csvManager;
+    private ControllerFragment.SensorData[] mSensorData;
 
     // region Fragment Lifecycle
     public UartBaseFragment() {
@@ -130,12 +155,35 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
         // Retain this fragment across configuration changes
         setRetainInstance(true);
 
-        // Make location Manager
-        locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
-
-        // Create our Canary Stuff
-        canaryStuff = new CanaryStuff(locationManager);
+        csvManager = new CSVManager();
     }
+    // region Google Services
+    private synchronized void buildGoogleApiClient(@NonNull Context context) {
+        mGoogleApiClient = new GoogleApiClient.Builder(context.getApplicationContext())         // Use getApplicationContext to prevent memory leak: https://stackoverflow.com/questions/35308231/memory-leak-with-googleapiclient-detected-by-android-studio
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+    }
+
+    private synchronized void disconnectGoogleApiClient() {
+        if (mGoogleApiClient != null) {
+            mGoogleApiClient.disconnect();
+            mGoogleApiClient.unregisterConnectionCallbacks(this);
+            mGoogleApiClient.unregisterConnectionFailedListener(this);
+            mGoogleApiClient = null;
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        Log.d(TAG, "onStart");
+        mGoogleApiClient.connect();
+
+    }
+
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -172,7 +220,6 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
         mSendEditText = view.findViewById(R.id.sendEditText);
         mSendEditText.setOnEditorActionListener((textView, actionId, keyEvent) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
-                onClickSend();
                 return true;
             }
             return false;
@@ -184,8 +231,6 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
             }
         });
 
-        mSendButton = view.findViewById(R.id.sendButton);
-        mSendButton.setOnClickListener(view12 -> onClickSend());
 
         final boolean isInMultiUartMode = isInMultiUartMode();
         mSendPeripheralSpinner = view.findViewById(R.id.sendPeripheralSpinner);
@@ -223,6 +268,23 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
                 mMqttManager.setListener(this);
             }
         }
+
+        // SensorData
+        if (mSensorData == null) {     // Only setup when is null
+            mSensorData = new ControllerFragment.SensorData[1];
+            for (int i = 0; i < 1; i++) {
+                ControllerFragment.SensorData sensorData = new ControllerFragment.SensorData();
+                sensorData.sensorType = i;
+                sensorData.enabled = false;
+                mSensorData[i] = sensorData;
+            }
+        }
+        // Sensor Manager
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(context);
+
+        buildGoogleApiClient(context);
+
+        registerEnabledSensorListeners( getContext(), true );
     }
 
     private void setShowDataInHexFormat(boolean showDataInHexFormat) {
@@ -240,8 +302,18 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
     @Override
     public void onResume() {
-        super.onResume();
 
+        super.onResume();
+        LocationRequest locationRequest = new LocationRequest();
+        locationRequest.setInterval(2000);
+        locationRequest.setFastestInterval(500);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        try {
+            mFusedLocationClient.requestLocationUpdates( locationRequest, mInternalLocationCallback, null );
+        }catch (SecurityException e)
+        {
+            e.printStackTrace();
+        }
         FragmentActivity activity = getActivity();
         if (activity != null) {
             activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
@@ -253,6 +325,169 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
         isUITimerRunning = true;
         mUIRefreshTimerHandler.postDelayed(mUIRefreshTimerRunnable, 0);
+
+        //ask for data permission
+        final Context context = getContext();
+
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        int resultCode = apiAvailability.isGooglePlayServicesAvailable(context);
+        if (resultCode == ConnectionResult.SERVICE_MISSING ||
+                resultCode == ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED ||
+                resultCode == ConnectionResult.SERVICE_DISABLED) {
+
+            Dialog googlePlayErrorDialog = apiAvailability.getErrorDialog(getActivity(), resultCode, MainActivity.kActivityRequestCode_PlayServicesAvailability);
+            if (googlePlayErrorDialog != null) {
+                googlePlayErrorDialog.show();
+            }
+        }
+    }
+
+    // region GoogleApiClient.ConnectionCallbacks
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        Log.d(TAG, "Google Play Services connected");
+
+        checkPermissions();
+    }
+
+    private void checkPermissions() {
+        final boolean isLocationPermissionGranted = requestFineLocationPermissionIfNeeded();
+
+        if (isLocationPermissionGranted) {
+            try {
+                mFusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+                    // Got last known location. In some rare situations this can be null.
+                    if (location != null) {
+                        // Logic to handle location object
+                        mMainHandler.post(() -> setLastLocation(location));
+                    }
+                });
+            } catch (SecurityException e) {
+                Log.e(TAG, "Security exception requesting location updates: " + e);
+            }
+        }
+    }
+
+    private void registerEnabledSensorListeners(@NonNull Context context, boolean register) {
+
+        // Location
+        if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
+            if (register && mSensorData[0].enabled) {
+                LocationRequest locationRequest = new LocationRequest();
+                locationRequest.setInterval(2000);
+                locationRequest.setFastestInterval(500);
+                locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+                // Location updates should have already been granted to scan for bluetooth peripherals, so we don't ask for them again
+                try {
+                    mFusedLocationClient.requestLocationUpdates(locationRequest, mLocationCallback, null);
+                } catch (SecurityException e) {
+                    Log.e(TAG, "Security exception requesting location updates: " + e);
+                }
+
+            } else {
+                mFusedLocationClient.removeLocationUpdates(mLocationCallback);
+            }
+        }
+    }
+    // region LocationCallback
+    // Create a WeakReference to LocationCallback to avoid memory leaks in GoogleServices: https://github.com/googlesamples/android-play-location/issues/26
+    private static class LocationCallbackReference extends LocationCallback {
+
+        private WeakReference<LocationCallback> weakLocationCallback;
+
+        LocationCallbackReference(LocationCallback locationCallback) {
+            weakLocationCallback = new WeakReference<>(locationCallback);
+        }
+
+        @Override
+        public void onLocationResult(LocationResult locationResult) {
+            super.onLocationResult(locationResult);
+            if (weakLocationCallback.get() != null) {
+                weakLocationCallback.get().onLocationResult(locationResult);
+            }
+        }
+    }
+
+
+
+    private LocationCallback mInternalLocationCallback = new LocationCallback() {
+        @Override
+        public void onLocationResult(LocationResult locationResult) {
+            Location location = locationResult.getLastLocation();
+            setLastLocation( location );
+        }
+    };
+
+    private UartBaseFragment.LocationCallbackReference mLocationCallback = new UartBaseFragment.LocationCallbackReference(mInternalLocationCallback);
+
+    private void setLastLocation(@Nullable Location location) {
+        if (location != null) {
+            ControllerFragment.SensorData sensorData = mSensorData[0];
+
+            float[] values = new float[3];
+            values[0] = (float) location.getLatitude();
+            values[1] = (float) location.getLongitude();
+            values[2] = (float) location.getAltitude();
+            sensorData.values = values;
+
+            currentLocation = location;
+        }
+
+    }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        switch (requestCode) {
+            case MainActivity.PERMISSION_REQUEST_FINE_LOCATION: {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "Fine Location permission granted");
+
+                    checkPermissions();
+
+                } else {
+                    final AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                    builder.setTitle(R.string.bluetooth_locationpermission_notavailable_title);
+                    builder.setMessage(R.string.bluetooth_locationpermission_notavailable_text);
+                    builder.setPositiveButton(android.R.string.ok, null);
+                    builder.setOnDismissListener(dialog -> {
+                    });
+                    builder.show();
+                }
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    private boolean requestFineLocationPermissionIfNeeded() {
+        final Context context = getContext();
+        if (context == null) return false;
+
+        boolean permissionGranted = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Android Marshmallow Permission check 
+            if (context.checkSelfPermission( Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                permissionGranted = false;
+                if (mRequestLocationDialog != null) {
+                    mRequestLocationDialog.cancel();
+                    mRequestLocationDialog = null;
+                }
+
+                final AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                mRequestLocationDialog = builder.setTitle(R.string.bluetooth_locationpermission_title)
+                        .setMessage(R.string.controller_sensor_locationpermission_text)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .setOnDismissListener(dialog -> requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MainActivity.PERMISSION_REQUEST_FINE_LOCATION))
+                        .show();
+            }
+        }
+        return permissionGranted;
     }
 
     @Override
@@ -296,6 +531,13 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
             mBlePeripheralsUart = null;
         }
 
+        // Force release mLocationCallback to avoid memory leaks
+        if (mFusedLocationClient != null) {
+            mFusedLocationClient = null;
+        }
+
+        mGoogleApiClient.disconnect();
+        disconnectGoogleApiClient();
         super.onDestroy();
     }
 
@@ -496,13 +738,6 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 //        send(newText);
 //    }
 
-    private void onClickSend() {
-//        canaryStuff.createCSV();
-        Map<String, Double> loc = canaryStuff.mapLastKnownLocation();
-        for (String key : loc.keySet()) {
-            System.out.print(loc.get(key));
-        }
-    }
 
     // endregion
 
@@ -526,7 +761,6 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
         }
     }
 
-    // TODO: Use this method later.
     /**
      * This method SHOULD return the bluetooth string received.
      * @return
@@ -541,6 +775,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
         return receivedText;
     }
 
+    //TODO: use this method to update csv every time a packet is received
     @MainThread
     private void updateBytesUI() {
         if (mUartData != null) {
@@ -669,16 +904,21 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
     // endregion
 
+    //TODO use this to update what is displayed with location and send to CSV
     // region UI
-
     private void onUartPacketText(UartPacket packet) {
         if (mIsEchoEnabled || packet.getMode() == UartPacket.TRANSFERMODE_RX) {
             final int color = colorForPacket(packet);
             final boolean isBold = isFontBoldForPacket(packet);
             final byte[] bytes = packet.getData();
-            final String formattedData = mShowDataInHexFormat ? BleUtils.bytesToHex2(bytes) : BleUtils.bytesToText(bytes, true);
+            String formattedData = mShowDataInHexFormat ? BleUtils.bytesToHex2(bytes) : BleUtils.bytesToText(bytes, true);
+
+            String latStr = currentLocation.getLatitude() + "";
+            String longStr = currentLocation.getLongitude() + "";
+            String altStr = currentLocation.getAltitude() + "";
+            formattedData = formattedData + "," + latStr + "," + longStr + "," + altStr;
             addTextToSpanBuffer(mTextSpanBuffer, formattedData, color, isBold);
-            canaryStuff.sendCSV(getBluetoothReceivedString());
+            csvManager.sendCSV(formattedData);
         }
 
     }

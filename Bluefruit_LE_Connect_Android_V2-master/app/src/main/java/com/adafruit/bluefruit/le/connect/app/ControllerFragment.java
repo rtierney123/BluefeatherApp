@@ -762,7 +762,7 @@ public class ControllerFragment extends ConnectedPeripheralFragment implements G
     }
 
 
-    private class SensorData {
+    public static class SensorData {
         public int sensorType;
         public float[] values;
         public boolean enabled;

@@ -69,9 +69,6 @@ public class AboutFragment extends Fragment {
         if (activity != null) {
             activity.invalidateOptionsMenu();        // update options menu with current values
         }
-
-        testButton = view.findViewById(R.id.testButton);
-        testButton.setOnClickListener(view12 -> onClickTest());
     }
 
 
@@ -87,17 +84,5 @@ public class AboutFragment extends Fragment {
         }
     }
 
-    private void onClickTest() {
 
-//        canaryStuff.createCSV();
-//        Map<String, Double> loc = canaryStuff.mapLastKnownLocation();
-//        for (String key : loc.keySet()) {
-//            Log.i("Location", loc.get(key).toString());
-//        }
-        canaryStuff.sendCSV("spo2, temperature");
-    }
-
-
-
-    // endregion
 }

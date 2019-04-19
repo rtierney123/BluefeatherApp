@@ -25,6 +25,7 @@ import com.adafruit.bluefruit.le.connect.ble.central.BleScanner;
 import com.adafruit.bluefruit.le.connect.ble.central.UartPacketManager;
 import com.adafruit.bluefruit.le.connect.style.UartStyle;
 import com.adafruit.bluefruit.le.connect.utils.DialogUtils;
+import com.google.android.gms.common.ConnectionResult;
 
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
@@ -97,6 +98,16 @@ public class UartModeFragment extends UartBaseFragment {
 
         // Setup Uart
         setupUart();
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
     }
 
     // endregion

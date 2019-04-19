@@ -105,7 +105,7 @@ public class ThermalCameraFragment extends ConnectedPeripheralFragment implement
         magnificationRadioGroup.check(mIsFilterEnabled ? R.id.magnificationFilteredButton : R.id.magnificationPixelatedButton);
         magnificationRadioGroup.setOnCheckedChangeListener((radioGroup, i) -> mIsFilterEnabled = i == R.id.magnificationFilteredButton);
 
-        mCameraImageView = view.findViewById(R.id.cameraImageView);
+       //mCameraImageView = view.findViewById(R.id.cameraImageView);
         mLowerTempTextView = view.findViewById(R.id.lowerTempTextView);
         mUpperTempTextView = view.findViewById(R.id.upperTempTextView);
         mThermalScaleView = view.findViewById(R.id.thermalScaleView);
