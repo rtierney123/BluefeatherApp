@@ -915,16 +915,24 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
             final int color = colorForPacket(packet);
             final boolean isBold = isFontBoldForPacket(packet);
             final byte[] bytes = packet.getData();
-            String formattedData = mShowDataInHexFormat ? BleUtils.bytesToHex2(bytes) : BleUtils.bytesToText(bytes, true);
+            String formattedData = mShowDataInHexFormat ? BleUtils.bytesToHex2(bytes) : BleUtils.bytesToText(bytes, false);
 
-            long currentTime = Calendar.getInstance().getTimeInMillis();
+            if (!formattedData.isEmpty()){
+                long currentTime = Calendar.getInstance().getTimeInMillis();
 
-            String latStr = currentLocation.getLatitude() + "";
-            String longStr = currentLocation.getLongitude() + "";
-            String altStr = currentLocation.getAltitude() + "";
-            formattedData = currentTime+ "," + formattedData + "," + latStr + "," + longStr + "," + altStr;
-            addTextToSpanBuffer(mTextSpanBuffer, formattedData, color, isBold);
-            csvManager.sendCSV(formattedData);
+                String spO2Str = formattedData;
+                String latStr = currentLocation.getLatitude() + "";
+                String longStr = currentLocation.getLongitude() + "";
+                String altStr = currentLocation.getAltitude() + "";
+                formattedData = currentTime+ "," + formattedData + "," + latStr + "," + longStr + "," + altStr;
+
+                String displayString =  spO2Str +","+ String.format("%.2f", currentLocation.getLatitude()) + "," + String.format("%.2f", currentLocation.getLongitude()) + ","
+                        + String.format("%.2f", currentLocation.getAltitude()) + "\n";
+
+                addTextToSpanBuffer(mTextSpanBuffer, displayString, color, isBold);
+                csvManager.sendCSV(formattedData);
+            }
+
         }
 
     }
