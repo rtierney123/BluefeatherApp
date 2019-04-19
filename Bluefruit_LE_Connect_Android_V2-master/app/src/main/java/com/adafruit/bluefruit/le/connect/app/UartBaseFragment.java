@@ -533,11 +533,13 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
         // Force release mLocationCallback to avoid memory leaks
         if (mFusedLocationClient != null) {
+            mFusedLocationClient.removeLocationUpdates(mLocationCallback);
             mFusedLocationClient = null;
         }
 
         mGoogleApiClient.disconnect();
         disconnectGoogleApiClient();
+        mBufferItemAdapter = null;
         super.onDestroy();
     }
 
