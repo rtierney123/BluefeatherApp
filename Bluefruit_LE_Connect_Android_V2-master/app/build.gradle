@@ -42,7 +42,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     androidTestImplementation('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
-        implementation 'de.siegmar:fastcsv:1.0.3'
+        compile 'de.siegmar:fastcsv:1.0.3'
     })
 
     // Support library
@@ -91,6 +91,5 @@ dependencies {
 
     // Canary Libraries
     api 'de.siegmar:fastcsv:1.0.3'
-    implementation 'com.squareup.okhttp3:okhttp:3.14.1'
 
 }
