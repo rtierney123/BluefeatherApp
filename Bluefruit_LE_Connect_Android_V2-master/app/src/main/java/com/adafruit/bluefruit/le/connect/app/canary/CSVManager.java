@@ -48,7 +48,7 @@ public class CSVManager {
                     System.out.println("Adding header to file.");
                     try (CsvAppender csvAppender = csvWriter.append(fileWriter)) {
                         // WRITE FILE HEADER
-                        csvAppender.appendLine("TIME", "SPO2", "ALTITUDE", "LATITUDE", "LONGITUDE");
+                        csvAppender.appendLine("TIME", "READABLETIME",  "SPO2", "ALTITUDE", "LATITUDE", "LONGITUDE");
                     } catch (java.io.IOException e) {
                         e.printStackTrace();
                     }
