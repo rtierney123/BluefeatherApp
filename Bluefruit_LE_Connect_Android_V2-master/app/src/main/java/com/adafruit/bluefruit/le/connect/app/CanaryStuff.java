@@ -22,7 +22,7 @@ import java.util.Map;
 
 import static android.content.Context.LOCATION_SERVICE;
 
-public class CanaryStuff implements LocationListener {
+public class CanaryStuff {
 
 
     // CSV Stuff
@@ -30,17 +30,19 @@ public class CanaryStuff implements LocationListener {
 //    private FileWriter fileWriter;
 
     // Location Stuff
+    /*
     private LocationManager locationManager;
     protected String latitude,longitude;
     protected boolean gps_enabled,network_enabled;
     private String latStr;
     private String lonStr;
     private String altStr;
-
+    */
 
 
 
     public CanaryStuff(LocationManager locationManager) {
+        /*
         this.locationManager = locationManager;
 
 
@@ -113,9 +115,8 @@ public class CanaryStuff implements LocationListener {
         retMap.put("longitude", bestLocation.getLongitude());
         retMap.put("altitude", bestLocation.getAltitude());
         return retMap;
+        */
     }
-
-
 
 
 }

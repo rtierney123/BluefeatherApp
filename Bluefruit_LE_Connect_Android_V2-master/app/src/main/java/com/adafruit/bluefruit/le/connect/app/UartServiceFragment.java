@@ -17,10 +17,12 @@ import com.adafruit.bluefruit.le.connect.ble.UartPacket;
 import com.adafruit.bluefruit.le.connect.ble.peripheral.UartPeripheralModePacketManager;
 import com.adafruit.bluefruit.le.connect.ble.peripheral.UartPeripheralService;
 import com.adafruit.bluefruit.le.connect.models.PeripheralModeManager;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
 
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-public class UartServiceFragment extends UartBaseFragment {
+public class UartServiceFragment extends UartBaseFragment implements GoogleApiClient.ConnectionCallbacks {
     // Log
     private final static String TAG = UartServiceFragment.class.getSimpleName();
 
@@ -134,6 +136,16 @@ public class UartServiceFragment extends UartBaseFragment {
         final String message = new String(mqttMessage.getPayload());
 
         uartData.send(mUartPeripheralService, message, true);
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
     }
 
     // endregion
