@@ -66,6 +66,7 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 
 import java.lang.ref.WeakReference;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -919,10 +920,15 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
             long currentTime = Calendar.getInstance().getTimeInMillis();
 
+            Date date = new Date();
+            String strDateFormat = "hh:mm:ss a";
+            DateFormat dateFormat = new SimpleDateFormat(strDateFormat);
+            String formattedDate= dateFormat.format(date);
+
             String latStr = currentLocation.getLatitude() + "";
             String longStr = currentLocation.getLongitude() + "";
             String altStr = currentLocation.getAltitude() + "";
-            formattedData = currentTime+ "," + formattedData + "," + latStr + "," + longStr + "," + altStr;
+            formattedData = currentTime+ "," + formattedDate + "," + formattedData + "," + latStr + "," + longStr + "," + altStr;
             addTextToSpanBuffer(mTextSpanBuffer, formattedData, color, isBold);
             csvManager.sendCSV(formattedData);
         }
