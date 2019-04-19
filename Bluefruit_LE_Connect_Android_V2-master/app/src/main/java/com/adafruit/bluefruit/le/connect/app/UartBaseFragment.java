@@ -541,6 +541,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
         mGoogleApiClient.disconnect();
         disconnectGoogleApiClient();
         mBufferItemAdapter = null;
+        mBufferRecylerView = null;
         super.onDestroy();
     }
 
