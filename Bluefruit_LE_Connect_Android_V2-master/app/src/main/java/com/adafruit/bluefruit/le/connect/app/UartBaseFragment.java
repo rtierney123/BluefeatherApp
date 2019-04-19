@@ -678,7 +678,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
             final byte[] bytes = packet.getData();
             final String formattedData = mShowDataInHexFormat ? BleUtils.bytesToHex2(bytes) : BleUtils.bytesToText(bytes, true);
             addTextToSpanBuffer(mTextSpanBuffer, formattedData, color, isBold);
-            canaryStuff.sendCSV(getBluetoothReceivedString());
+            //canaryStuff.sendCSV(getBluetoothReceivedString());
         }
 
     }
