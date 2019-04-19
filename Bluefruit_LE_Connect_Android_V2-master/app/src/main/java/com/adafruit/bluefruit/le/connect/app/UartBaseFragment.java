@@ -1,10 +1,17 @@
 package com.adafruit.bluefruit.le.connect.app;
 
+import android.Manifest;
+import android.annotation.TargetApi;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.location.Location;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -24,6 +31,7 @@ import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -47,6 +55,10 @@ import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheralUart;
 import com.adafruit.bluefruit.le.connect.mqtt.MqttManager;
 import com.adafruit.bluefruit.le.connect.mqtt.MqttSettings;
 import com.adafruit.bluefruit.le.connect.utils.KeyboardUtils;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -83,6 +95,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
     private TextView mSentBytesTextView;
     private TextView mReceivedBytesTextView;
     protected Spinner mSendPeripheralSpinner;
+    private AlertDialog mRequestLocationDialog;
 
     // UI TextBuffer (refreshing the text buffer is managed with a timer because a lot of changes can arrive really fast and could stall the main thread)
     private Handler mUIRefreshTimerHandler = new Handler();
@@ -102,6 +115,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
     protected final Handler mMainHandler = new Handler(Looper.getMainLooper());
     protected UartPacketManagerBase mUartData;
     protected List<BlePeripheralUart> mBlePeripheralsUart = new ArrayList<>();
+    private FusedLocationProviderClient mFusedLocationClient;
 
     private boolean mShowDataInHexFormat;
     private boolean mIsTimestampDisplayMode;
@@ -118,7 +132,9 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
     private CanaryStuff canaryStuff;
     private LocationManager locationManager;
+    private Location currentLocation;
     private CSVManager csvManager;
+    private ControllerFragment.SensorData[] mSensorData;
 
     // region Fragment Lifecycle
     public UartBaseFragment() {
@@ -226,6 +242,19 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
                 mMqttManager.setListener(this);
             }
         }
+
+        // SensorData
+        if (mSensorData == null) {     // Only setup when is null
+            mSensorData = new ControllerFragment.SensorData[1];
+            for (int i = 0; i < 1; i++) {
+                ControllerFragment.SensorData sensorData = new ControllerFragment.SensorData();
+                sensorData.sensorType = i;
+                sensorData.enabled = false;
+                mSensorData[i] = sensorData;
+            }
+        }
+        // Sensor Manager
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(context);
     }
 
     private void setShowDataInHexFormat(boolean showDataInHexFormat) {
@@ -256,6 +285,113 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
         isUITimerRunning = true;
         mUIRefreshTimerHandler.postDelayed(mUIRefreshTimerRunnable, 0);
+
+        //ask for data permission
+        final Context context = getContext();
+
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        int resultCode = apiAvailability.isGooglePlayServicesAvailable(context);
+        if (resultCode == ConnectionResult.SERVICE_MISSING ||
+                resultCode == ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED ||
+                resultCode == ConnectionResult.SERVICE_DISABLED) {
+
+            Dialog googlePlayErrorDialog = apiAvailability.getErrorDialog(getActivity(), resultCode, MainActivity.kActivityRequestCode_PlayServicesAvailability);
+            if (googlePlayErrorDialog != null) {
+                googlePlayErrorDialog.show();
+            }
+        }
+    }
+
+    // region GoogleApiClient.ConnectionCallbacks
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        Log.d(TAG, "Google Play Services connected");
+
+        checkPermissions();
+    }
+
+    private void checkPermissions() {
+        final boolean isLocationPermissionGranted = requestFineLocationPermissionIfNeeded();
+
+        if (isLocationPermissionGranted) {
+            try {
+                mFusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+                    // Got last known location. In some rare situations this can be null.
+                    if (location != null) {
+                        // Logic to handle location object
+                        mMainHandler.post(() -> setLastLocation(location));
+                    }
+                });
+            } catch (SecurityException e) {
+                Log.e(TAG, "Security exception requesting location updates: " + e);
+            }
+        }
+    }
+
+    private void setLastLocation(@Nullable Location location) {
+        if (location != null) {
+            ControllerFragment.SensorData sensorData = mSensorData[0];
+
+            float[] values = new float[3];
+            values[0] = (float) location.getLatitude();
+            values[1] = (float) location.getLongitude();
+            values[2] = (float) location.getAltitude();
+            sensorData.values = values;
+        }
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        switch (requestCode) {
+            case MainActivity.PERMISSION_REQUEST_FINE_LOCATION: {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "Fine Location permission granted");
+
+                    checkPermissions();
+
+                } else {
+                    final AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                    builder.setTitle(R.string.bluetooth_locationpermission_notavailable_title);
+                    builder.setMessage(R.string.bluetooth_locationpermission_notavailable_text);
+                    builder.setPositiveButton(android.R.string.ok, null);
+                    builder.setOnDismissListener(dialog -> {
+                    });
+                    builder.show();
+                }
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    private boolean requestFineLocationPermissionIfNeeded() {
+        final Context context = getContext();
+        if (context == null) return false;
+
+        boolean permissionGranted = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Android Marshmallow Permission check 
+            if (context.checkSelfPermission( Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                permissionGranted = false;
+                if (mRequestLocationDialog != null) {
+                    mRequestLocationDialog.cancel();
+                    mRequestLocationDialog = null;
+                }
+
+                final AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                mRequestLocationDialog = builder.setTitle(R.string.bluetooth_locationpermission_title)
+                        .setMessage(R.string.controller_sensor_locationpermission_text)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .setOnDismissListener(dialog -> requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MainActivity.PERMISSION_REQUEST_FINE_LOCATION))
+                        .show();
+            }
+        }
+        return permissionGranted;
     }
 
     @Override
@@ -297,6 +433,11 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
             }
             mBlePeripheralsUart.clear();
             mBlePeripheralsUart = null;
+        }
+
+        // Force release mLocationCallback to avoid memory leaks
+        if (mFusedLocationClient != null) {
+            mFusedLocationClient = null;
         }
 
         super.onDestroy();
