@@ -39,6 +39,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.adafruit.bluefruit.le.connect.R;
+import com.adafruit.bluefruit.le.connect.app.canary.CSVManager;
 import com.adafruit.bluefruit.le.connect.ble.BleUtils;
 import com.adafruit.bluefruit.le.connect.ble.UartPacket;
 import com.adafruit.bluefruit.le.connect.ble.UartPacketManagerBase;
@@ -117,6 +118,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
     private CanaryStuff canaryStuff;
     private LocationManager locationManager;
+    private CSVManager csvManager;
 
     // region Fragment Lifecycle
     public UartBaseFragment() {
@@ -135,6 +137,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
         // Create our Canary Stuff
         canaryStuff = new CanaryStuff(locationManager);
+        csvManager = new CSVManager();
     }
 
     @Override
@@ -541,6 +544,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
         return receivedText;
     }
 
+    //TODO: use this method to update csv every time a packet is received
     @MainThread
     private void updateBytesUI() {
         if (mUartData != null) {
@@ -678,7 +682,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
             final byte[] bytes = packet.getData();
             final String formattedData = mShowDataInHexFormat ? BleUtils.bytesToHex2(bytes) : BleUtils.bytesToText(bytes, true);
             addTextToSpanBuffer(mTextSpanBuffer, formattedData, color, isBold);
-            //canaryStuff.sendCSV(getBluetoothReceivedString());
+            csvManager.sendCSV(formattedData);
         }
 
     }

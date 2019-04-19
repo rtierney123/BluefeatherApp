@@ -35,6 +35,14 @@
                 android:layout_height="wrap_content"
                 android:text="@string/uart_send_action" />
 
+            <Button
+                android:id="@+id/generateCSV"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="#E63E08"
+                android:text="Generate CSV" />
+
             <Spinner
                 android:id="@+id/sendPeripheralSpinner"
                 android:layout_width="wrap_content"
