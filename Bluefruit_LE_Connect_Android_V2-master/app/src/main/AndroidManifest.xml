@@ -27,8 +27,8 @@
     <application
         android:name=".BluefruitApplication"
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:icon="@mipmap/ic_canary_splash"
+        android:label="Canary"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
@@ -39,7 +39,7 @@
 
         <activity
             android:name=".app.SplashActivity"
-            android:label="@string/app_name"
+            android:label="Canary"
             android:theme="@style/SplashTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -60,7 +60,7 @@
         </activity>
         <activity
             android:name=".app.MainActivity"
-            android:label="@string/app_name"
+            android:label="Canary"
             android:launchMode="singleTop" />
 
         <!-- DFU Notification -->

@@ -11,6 +11,6 @@
         <bitmap
 
             android:gravity="center"
-            android:src="@drawable/info_adafruit_logo" />
+            android:src="@drawable/ic_canary_foreground" />
     </item>
 </layer-list>
