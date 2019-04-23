@@ -83,6 +83,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
     // Configuration
     public final static int kDefaultMaxPacketsToPaintAsText = 500;
     private final static int kInfoColor = Color.parseColor("#F21625");
+    private int initialPacket = 1;
 
     // Constants
     private final static String kPreferences = "UartActivity_prefs";
@@ -219,6 +220,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
         }
 
         // Send Text
+
         mSendEditText = view.findViewById(R.id.sendEditText);
         mSendEditText.setOnEditorActionListener((textView, actionId, keyEvent) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
@@ -232,6 +234,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
                 KeyboardUtils.dismissKeyboard(view1);
             }
         });
+
 
 
         final boolean isInMultiUartMode = isInMultiUartMode();
@@ -791,7 +794,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
 
     private void setDisplayFormatToTimestamp(boolean enabled) {
         mIsTimestampDisplayMode = enabled;
-        mBufferTextView.setVisibility(enabled ? View.GONE : View.VISIBLE);
+        //mBufferTextView.setVisibility(enabled ? View.GONE : View.VISIBLE);
         mBufferRecylerView.setVisibility(enabled ? View.VISIBLE : View.GONE);
     }
 
@@ -927,16 +930,20 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
                 DateFormat dateFormat = new SimpleDateFormat(strDateFormat);
                 String formattedDate= dateFormat.format(date);
 
-                String latStr = currentLocation.getLatitude() + "";
-                String longStr = currentLocation.getLongitude() + "";
-                String altStr = currentLocation.getAltitude() + "";
-                formattedData = currentTime+ "," + formattedDate + "," + formattedData + "," + latStr + "," + longStr + "," + altStr;
+                if(currentLocation != null){
+                    String latStr = currentLocation.getLatitude() + "";
+                    String longStr = currentLocation.getLongitude() + "";
+                    String altStr = currentLocation.getAltitude() + "";
+                    formattedData = currentTime+ "," + formattedDate + "," + formattedData + "," + latStr + "," + longStr + "," + altStr;
 
-                String displayString =  spO2 +","+ String.format("%.2f", currentLocation.getLatitude()) + "," + String.format("%.2f", currentLocation.getLongitude()) + ","
-                        + String.format("%.2f", currentLocation.getAltitude()) + "\n";
+                    String displayString =  spO2 +","+ String.format("%.2f", currentLocation.getLatitude()) + "," + String.format("%.2f", currentLocation.getLongitude()) + ","
+                            + String.format("%.2f", currentLocation.getAltitude()) + "\n";
 
-                addTextToSpanBuffer(mTextSpanBuffer, displayString, color, isBold);
-                csvManager.sendCSV(formattedData);
+                    addTextToSpanBuffer(mTextSpanBuffer, displayString, color, isBold);
+                    csvManager.sendCSV(formattedData);
+                }
+
+
             }
 
         }

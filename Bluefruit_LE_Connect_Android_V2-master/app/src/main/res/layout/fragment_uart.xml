@@ -17,7 +17,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#cccccc"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            tools:visibility="gone">
 
             <EditText
                 android:id="@+id/sendEditText"
@@ -27,21 +28,15 @@
                 android:inputType="textNoSuggestions|textVisiblePassword"
                 android:scrollbarAlwaysDrawVerticalTrack="true"
                 android:scrollbars="vertical"
-                android:singleLine="false" />
+                android:singleLine="false"
+                tools:visibility="gone" />
 
             <Button
                 android:id="@+id/sendButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/uart_send_action" />
-
-            <Button
-                android:id="@+id/generateCSV"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="#E63E08"
-                android:text="Generate CSV" />
+                android:text="@string/uart_send_action"
+                tools:visibility="gone" />
 
             <Spinner
                 android:id="@+id/sendPeripheralSpinner"
