@@ -837,6 +837,10 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
                     onUartPacketText(packet);
                 }
 
+                if (mTextSpanBuffer.length() > 1000){
+                    mTextSpanBuffer.clear();
+                }
+
                 mBufferTextView.setText(mTextSpanBuffer);
                 mBufferTextView.setSelection(0, mTextSpanBuffer.length());        // to automatically scroll to the end
             }
@@ -936,7 +940,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
                     String altStr = currentLocation.getAltitude() + "";
                     formattedData = currentTime+ "," + formattedDate + "," + formattedData + "," + latStr + "," + longStr + "," + altStr;
 
-                    String displayString =  spO2 +","+ String.format("%.2f", currentLocation.getLatitude()) + "," + String.format("%.2f", currentLocation.getLongitude()) + ","
+                    String displayString =  spO2.length() < 2 ? spO2 : spO2.substring(0, 2)+","+ String.format("%.2f", currentLocation.getLatitude()) + "," + String.format("%.2f", currentLocation.getLongitude()) + ","
                             + String.format("%.2f", currentLocation.getAltitude()) + "\n";
 
                     addTextToSpanBuffer(mTextSpanBuffer, displayString, color, isBold);
