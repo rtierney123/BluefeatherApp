@@ -25,7 +25,7 @@ import java.util.Map;
 
 public class AboutFragment extends Fragment {
 
-    CanaryStuff canaryStuff;
+
     LocationManager locationManager;
     Button testButton;
 
@@ -43,8 +43,6 @@ public class AboutFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
-        canaryStuff = new CanaryStuff(locationManager);
     }
 
     @Override

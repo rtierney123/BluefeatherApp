@@ -140,8 +140,6 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
     private int maxPacketsToPaintAsText;
     private int mPacketsCacheLastSize = 0;
 
-    private CanaryStuff canaryStuff;
-    private LocationManager locationManager;
     private Location currentLocation;
     private CSVManager csvManager;
     private ControllerFragment.SensorData[] mSensorData;
